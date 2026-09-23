@@ -4,15 +4,15 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 /*  EDIT ME — everything personal lives here                                   */
 /* -------------------------------------------------------------------------- */
 const CONFIG = {
-  name: "Nyoro",
-  role: "Fullstack Developer & Data Analyst",
+  name: "Nyoro Fadhili",
+  role: "Backend Developer & Data Analyst",
   // Digits only: country code + number, no "+" or spaces (Kenya example: 2547XXXXXXXX)
-  whatsapp: "254700000000",
-  email: "hello@example.com",
+  whatsapp: "25479793782",
+  email: "fadhiliwanyoike@gmail.com",
   location: "Nairobi, Kenya",
   education: "BSc. Computer Science",
-  github: "https://github.com/your-username",
-  linkedin: "https://www.linkedin.com/in/your-username",
+  github: "https://github.com/nyoike-yu",
+  linkedin: "http://www.linkedin.com/in/nyoro-fadhili-816854329",
   cvUrl: `${import.meta.env.BASE_URL}cv.pdf`, // put your CV at public/cv.pdf
 };
 
@@ -38,7 +38,7 @@ const KEYWORDS = [
 const EXPERIENCE = [
   {
     year: "2025 – Now",
-    role: "Fullstack Developer",
+    role: "Backend Developer",
     org: "Independent Projects",
     points: [
       "Build Python backends with JWT authentication, rate limiting, and audit logging for client applications.",
@@ -1388,7 +1388,7 @@ export default function App() {
       </main>
 
       <footer className="px-6 pb-24 pt-10 text-center text-xs text-neutral-400">
-        © {new Date().getFullYear()} {CONFIG.name}. Built with React and Tailwind CSS.
+        © {new Date().getFullYear()} {CONFIG.name}.
       </footer>
 
       <AIAssistant />
