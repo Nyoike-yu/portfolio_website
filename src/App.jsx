@@ -11,15 +11,18 @@ const CONFIG = {
   email: "fadhiliwanyoike@gmail.com",
   location: "Nairobi, Kenya",
   education: "BSc. Computer Science",
+  schools: ["University of Nairobi"],
+  interests: ["Playing football", "Reading novels"],
   github: "https://github.com/nyoike-yu",
   linkedin: "http://www.linkedin.com/in/nyoro-fadhili-816854329",
-  cvUrl: `${import.meta.env.BASE_URL}cv.pdf`, // put your CV at public/cv.pdf
+  // Put your resume at public/resume.pdf (file name is case-sensitive once deployed)
+  resumeUrl: `${import.meta.env.BASE_URL}resume.pdf`,
+  resumeFileName: "Nyoro-Fadhili-Resume.pdf", // name the visitor's download gets
 };
 
 const NAV = [
   ["Home", "home"],
   ["About", "about"],
-  ["Experience", "experience"],
   ["Projects", "projects"],
   ["Contacts", "contact"],
 ];
@@ -35,43 +38,10 @@ const KEYWORDS = [
   "Excel Analytics",
 ];
 
-const EXPERIENCE = [
-  {
-    year: "2025 – Now",
-    role: "Backend Developer",
-    org: "Independent Projects",
-    points: [
-      "Build Python backends with JWT authentication, rate limiting, and audit logging for client applications.",
-      "Design PostgreSQL schemas and migrations that stay fast as the data grows.",
-    ],
-    tags: ["Python", "PostgreSQL", "JWT", "REST API"],
-  },
-  {
-    year: "2024",
-    role: "Data Analyst",
-    org: "Retail Analytics Team",
-    points: [
-      "Cleaned raw sales exports in Excel, loaded them into PostgreSQL, and reported on them in Power BI.",
-      "Replaced manual weekly reporting with a single refreshable dashboard.",
-    ],
-    tags: ["Power BI", "Excel", "PostgreSQL", "SQL"],
-  },
-  {
-    year: "2023",
-    role: "Cybersecurity Trainee",
-    org: "Security Foundations Program",
-    points: [
-      "Practiced threat modeling and secure-coding reviews on small web applications.",
-    ],
-    tags: ["Threat Modeling", "Python", "OWASP"],
-  },
-];
-
 const STACK = [
   {
     title: "Backend & Scripting",
     blurb: "Where the application logic and automation live.",
-    icon: "terminal",
     tools: [
       { name: "Python", note: "APIs, automation, data wrangling", icon: "code" },
     ],
@@ -79,7 +49,6 @@ const STACK = [
   {
     title: "Databases",
     blurb: "Data that stays consistent, indexed, and queryable.",
-    icon: "database",
     tools: [
       { name: "PostgreSQL", note: "Schema design and query tuning", icon: "database" },
     ],
@@ -87,7 +56,6 @@ const STACK = [
   {
     title: "Data & Analytics",
     blurb: "Turning raw numbers into decisions.",
-    icon: "chart",
     tools: [
       { name: "Power BI", note: "Dashboards and reports", icon: "chart" },
       { name: "Microsoft Excel", note: "Cleaning, pivots, modeling", icon: "table" },
@@ -96,7 +64,6 @@ const STACK = [
   {
     title: "Security",
     blurb: "Designing so that misuse is hard from day one.",
-    icon: "shield",
     tools: [
       { name: "Cybersecurity Foundations", note: "Auth, hardening, secure defaults", icon: "lock" },
       { name: "Threat Modeling", note: "Finding abuse cases early", icon: "target" },
@@ -107,8 +74,11 @@ const STACK = [
 const PROJECTS = [
   {
     id: "secure-api",
+    kind: "Backend & Security",
     title: "Secure API Backend",
     desc: "Built with Python and PostgreSQL, featuring foundational cybersecurity protocols like rate limiting and JWT auth.",
+    overview:
+      "A backend service written in Python that keeps its data in PostgreSQL and treats security as part of the design instead of an add-on. Protected routes require a valid JWT, and rate limiting caps how often a client can call the API, which slows down brute-force attempts and general abuse.",
     tags: ["Python", "PostgreSQL", "JWT", "Rate limiting"],
     highlights: [
       "Python service backed by a PostgreSQL database.",
@@ -119,8 +89,11 @@ const PROJECTS = [
   },
   {
     id: "sales-dashboard",
+    kind: "Data & Analytics",
     title: "Sales Data Dashboard",
     desc: "Designed in Power BI using raw data cleaned in Excel and stored in PostgreSQL.",
+    overview:
+      "An end-to-end reporting pipeline. Raw sales exports were cleaned and standardized in Excel, then stored in PostgreSQL so every figure comes from a single source of truth. The Power BI dashboard sits on top of that database, so each number on screen traces back to a query.",
     tags: ["Power BI", "Excel", "PostgreSQL"],
     highlights: [
       "Raw sales data cleaned and standardized in Excel.",
@@ -128,6 +101,22 @@ const PROJECTS = [
       "Interactive dashboard designed in Power BI on top of it.",
     ],
     art: "bars",
+  },
+  {
+    // PLACEHOLDER: replace every field below with your real project
+    id: "project-placeholder",
+    kind: "Category",
+    title: "Project Placeholder",
+    desc: "A short one or two sentence summary of your next project goes here.",
+    overview:
+      "This is a placeholder. Replace it with a fuller explanation of the project: the problem it solves, how you approached it, and what you learned along the way.",
+    tags: ["Tag One", "Tag Two", "Tag Three"],
+    highlights: [
+      "First key feature or outcome.",
+      "Second key feature or outcome.",
+      "Third key feature or outcome.",
+    ],
+    art: "code",
   },
 ];
 
@@ -301,25 +290,94 @@ function useActiveSection(ids) {
   return active;
 }
 
-function useTypewriter(text, start, speed = 55) {
+function useInView(ref, threshold = 0.6) {
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref, threshold]);
+  return inView;
+}
+
+/* Types `text` every time `active` turns true and clears it when `active`
+   turns false, so the effect replays whenever the element scrolls back into
+   view. While it is on screen and finished, `typing` is false (caret blinks). */
+function useTypewriter(text, active, speed = 55, delay = 250) {
   const reduce = usePrefersReducedMotion();
   const [n, setN] = useState(0);
   useEffect(() => {
-    if (!start) return;
+    if (!active) {
+      setN(0);
+      return;
+    }
     if (reduce) {
       setN(text.length);
       return;
     }
     let i = 0;
+    let id = 0;
     setN(0);
-    const id = setInterval(() => {
-      i += 1;
-      setN(i);
-      if (i >= text.length) clearInterval(id);
-    }, speed);
-    return () => clearInterval(id);
-  }, [text, start, speed, reduce]);
-  return { typed: text.slice(0, n), done: n >= text.length };
+    const start = setTimeout(() => {
+      id = setInterval(() => {
+        i += 1;
+        setN(i);
+        if (i >= text.length) clearInterval(id);
+      }, speed);
+    }, delay);
+    return () => {
+      clearTimeout(start);
+      clearInterval(id);
+    };
+  }, [text, active, speed, delay, reduce]);
+  return { typed: text.slice(0, n), typing: active && n > 0 && n < text.length };
+}
+
+/* Downloads the resume through fetch so we can tell when the file is missing.
+   A plain <a download> silently saves the site's index.html (or nothing) when
+   public/resume.pdf does not exist, which looks like "the download is broken". */
+function useResumeDownload() {
+  const [status, setStatus] = useState("idle"); // idle | loading | error
+
+  const download = useCallback(async () => {
+    setStatus("loading");
+    try {
+      const res = await fetch(CONFIG.resumeUrl, { cache: "no-store" });
+      const type = res.headers.get("content-type") || "";
+      if (!res.ok || type.includes("text/html")) {
+        throw new Error(`Resume not found at ${CONFIG.resumeUrl} (HTTP ${res.status})`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(
+        new Blob([blob], { type: "application/pdf" })
+      );
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = CONFIG.resumeFileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus("idle");
+    } catch (err) {
+      console.error(
+        "[resume] Download failed. Make sure your PDF is saved as public/resume.pdf.",
+        err
+      );
+      setStatus("error");
+    }
+  }, []);
+
+  return [status, download];
 }
 
 /* -------------------------------------------------------------------------- */
@@ -348,6 +406,35 @@ function Preloader({ fading }) {
 /* -------------------------------------------------------------------------- */
 /*  Navbar                                                                     */
 /* -------------------------------------------------------------------------- */
+const SOCIALS = [
+  ["github", "GitHub", CONFIG.github],
+  ["linkedin", "LinkedIn", CONFIG.linkedin],
+  ["mail", "Email", `mailto:${CONFIG.email}`],
+];
+
+/* Inverted circles: white in dark mode, dark in light mode. */
+function SocialLinks() {
+  return (
+    <ul className="pointer-events-auto flex h-14 shrink-0 items-center gap-1.5 sm:gap-2">
+      {SOCIALS.map(([icon, label, href]) => (
+        <li key={label}>
+          <a
+            href={href}
+            aria-label={label}
+            title={label}
+            {...(href.startsWith("http")
+              ? { target: "_blank", rel: "noopener noreferrer" }
+              : {})}
+            className="grid h-8 w-8 place-items-center rounded-full bg-neutral-950 text-white shadow-[0_10px_24px_-8px_rgba(0,0,0,0.55)] ring-1 ring-black/10 transition hover:scale-110 active:scale-95 sm:h-11 sm:w-11 dark:bg-white dark:text-neutral-950 dark:shadow-[0_10px_24px_-8px_rgba(255,255,255,0.35)] dark:ring-white/40"
+          >
+            <Icon name={icon} className="h-4 w-4 sm:h-5 sm:w-5" />
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function Navbar({ theme, onToggleTheme, active }) {
   const [open, setOpen] = useState(false);
   const linkClass = (id) =>
@@ -362,66 +449,72 @@ function Navbar({ theme, onToggleTheme, active }) {
       className="pointer-events-none fixed inset-x-0 z-50 px-4"
       style={{ top: "calc(env(safe-area-inset-top, 0px) + 12px)" }}
     >
-      <nav
-        aria-label="Primary"
-        className={`pointer-events-auto mx-auto grid max-w-4xl grid-cols-[1fr_auto] items-center rounded-full px-5 py-3 shadow-[0_8px_30px_rgba(0,0,0,0.06)] md:grid-cols-[1fr_auto_1fr] ${glass}`}
-      >
-        <a href="#home" className="text-lg font-extrabold tracking-tight">
-          PORTFOLIO.
-        </a>
+      <div className="mx-auto flex max-w-5xl items-start gap-2 sm:gap-3">
+        <div className="min-w-0 flex-1">
+          <nav
+            aria-label="Primary"
+            className={`pointer-events-auto grid h-14 grid-cols-[minmax(0,1fr)_auto] items-center rounded-full px-3.5 shadow-[0_8px_30px_rgba(0,0,0,0.06)] sm:px-5 md:grid-cols-[1fr_auto_1fr] ${glass}`}
+          >
+            <a href="#home" className="truncate text-sm font-extrabold tracking-tight sm:text-lg">
+              PORTFOLIO.
+            </a>
 
-        <ul className="hidden items-center gap-8 md:flex">
-          {NAV.map(([label, id]) => (
-            <li key={id}>
-              <a
-                href={`#${id}`}
-                className={linkClass(id)}
-                aria-current={active === id ? "location" : undefined}
+            <ul className="hidden items-center gap-8 md:flex">
+              {NAV.map(([label, id]) => (
+                <li key={id}>
+                  <a
+                    href={`#${id}`}
+                    className={linkClass(id)}
+                    aria-current={active === id ? "location" : undefined}
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+
+            <div className="flex items-center justify-end gap-0.5 sm:gap-1">
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                className="grid h-8 w-8 place-items-center rounded-full text-neutral-600 transition hover:bg-black/5 sm:h-9 sm:w-9 dark:text-neutral-300 dark:hover:bg-white/10"
               >
-                {label}
-              </a>
-            </li>
-          ))}
-        </ul>
+                <Icon name={theme === "dark" ? "moon" : "sun"} />
+              </button>
+              <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                aria-label="Toggle menu"
+                aria-expanded={open}
+                className="grid h-8 w-8 place-items-center rounded-full text-neutral-600 transition hover:bg-black/5 sm:h-9 sm:w-9 md:hidden dark:text-neutral-300 dark:hover:bg-white/10"
+              >
+                <Icon name={open ? "x" : "menu"} />
+              </button>
+            </div>
+          </nav>
 
-        <div className="flex items-center justify-end gap-1">
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            className="grid h-9 w-9 place-items-center rounded-full text-neutral-600 transition hover:bg-black/5 dark:text-neutral-300 dark:hover:bg-white/10"
-          >
-            <Icon name={theme === "dark" ? "moon" : "sun"} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            aria-label="Toggle menu"
-            aria-expanded={open}
-            className="grid h-9 w-9 place-items-center rounded-full text-neutral-600 transition hover:bg-black/5 md:hidden dark:text-neutral-300 dark:hover:bg-white/10"
-          >
-            <Icon name={open ? "x" : "menu"} />
-          </button>
+          {open && (
+            <ul
+              className={`pointer-events-auto pop-in mt-2 rounded-3xl p-2 shadow-[0_8px_30px_rgba(0,0,0,0.08)] md:hidden ${glass}`}
+            >
+              {NAV.map(([label, id]) => (
+                <li key={id}>
+                  <a
+                    href={`#${id}`}
+                    onClick={() => setOpen(false)}
+                    className={`block rounded-2xl px-4 py-3 ${linkClass(id)}`}
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      </nav>
 
-      {open && (
-        <ul
-          className={`pointer-events-auto pop-in mx-auto mt-2 max-w-4xl rounded-3xl p-2 shadow-[0_8px_30px_rgba(0,0,0,0.08)] md:hidden ${glass}`}
-        >
-          {NAV.map(([label, id]) => (
-            <li key={id}>
-              <a
-                href={`#${id}`}
-                onClick={() => setOpen(false)}
-                className={`block rounded-2xl px-4 py-3 ${linkClass(id)}`}
-              >
-                {label}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
+        <SocialLinks />
+      </div>
     </header>
   );
 }
@@ -471,7 +564,11 @@ const HERO_BADGES = [
 ];
 
 function Hero({ ready }) {
-  const { typed, done } = useTypewriter(CONFIG.role, ready);
+  const roleRef = useRef(null);
+  // types when the role line is on screen, clears when it leaves, retypes on return
+  const inView = useInView(roleRef, 0.6);
+  const { typed, typing } = useTypewriter(CONFIG.role, ready && inView);
+  const [resumeStatus, downloadResume] = useResumeDownload();
 
   return (
     <section
@@ -486,18 +583,18 @@ function Hero({ ready }) {
 
       <div className="mx-auto grid w-full max-w-6xl flex-1 items-center gap-14 lg:grid-cols-[1.05fr_1fr]">
         <div>
-          <h1 className="text-[2.75rem] font-extrabold leading-[1.04] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
+          <h1 className="whitespace-nowrap text-[length:clamp(1.35rem,8vw,3rem)] font-extrabold leading-[1.1] tracking-[-0.035em] lg:text-[length:clamp(2rem,4vw,3rem)]">
             Hi, I'm {CONFIG.name}
           </h1>
 
-          <p className="mt-5 text-xl font-bold tracking-tight sm:text-2xl">
+          <p ref={roleRef} className="mt-5 text-xl font-bold tracking-tight sm:text-2xl">
             <span className="sr-only">{CONFIG.role}</span>
             {/* the invisible copy reserves the final height so nothing jumps while typing */}
             <span className="grid" aria-hidden="true">
               <span className="invisible col-start-1 row-start-1">{CONFIG.role}</span>
               <span className="col-start-1 row-start-1">
                 {typed}
-                <span className={`ml-0.5 inline-block w-[2px] translate-y-[2px] bg-current align-baseline ${done ? "caret" : ""}`}>
+                <span className={`ml-0.5 inline-block w-[2px] translate-y-[2px] bg-current align-baseline ${typing ? "" : "caret"}`}>
                   &nbsp;
                 </span>
               </span>
@@ -515,10 +612,30 @@ function Hero({ ready }) {
               Explore Work
               <Icon name="arrow" className="h-4 w-4" strokeWidth={2} />
             </a>
-            <a href={CONFIG.cvUrl} download className={btnOutline}>
-              Download CV
+            <button
+              type="button"
+              onClick={downloadResume}
+              disabled={resumeStatus === "loading"}
+              className={`${btnOutline} disabled:opacity-60`}
+            >
+              {resumeStatus === "loading" ? "Preparing..." : "Download Resume"}
               <Icon name="download" className="h-4 w-4" strokeWidth={2} />
-            </a>
+            </button>
+          </div>
+
+          <div role="status" aria-live="polite" className="mt-3 min-h-[1.25rem] text-sm">
+            {resumeStatus === "error" && (
+              <p className="text-neutral-600 dark:text-neutral-400">
+                The resume isn't available right now.{" "}
+                <a
+                  href={`mailto:${CONFIG.email}?subject=Resume request`}
+                  className="font-semibold text-black underline underline-offset-4 dark:text-white"
+                >
+                  Email me
+                </a>{" "}
+                and I'll send it over.
+              </p>
+            )}
           </div>
         </div>
 
@@ -545,25 +662,6 @@ function Hero({ ready }) {
         </div>
       </div>
 
-      <div className="mx-auto mt-14 flex w-full max-w-6xl gap-3 border-t border-neutral-200 pt-6 dark:border-white/10">
-        {[
-          ["github", "GitHub", CONFIG.github],
-          ["linkedin", "LinkedIn", CONFIG.linkedin],
-          ["mail", "Email", `mailto:${CONFIG.email}`],
-        ].map(([icon, label, href]) => (
-          <a
-            key={label}
-            href={href}
-            aria-label={label}
-            {...(href.startsWith("http")
-              ? { target: "_blank", rel: "noopener noreferrer" }
-              : {})}
-            className="grid h-11 w-11 place-items-center rounded-xl border border-neutral-200 text-neutral-700 transition hover:border-black hover:text-black dark:border-white/15 dark:text-neutral-300 dark:hover:border-white dark:hover:text-white"
-          >
-            <Icon name={icon} />
-          </a>
-        ))}
-      </div>
     </section>
   );
 }
@@ -571,13 +669,10 @@ function Hero({ ready }) {
 /* -------------------------------------------------------------------------- */
 /*  Section header                                                             */
 /* -------------------------------------------------------------------------- */
-function SectionHeader({ eyebrow, title }) {
+function SectionHeader({ title }) {
   return (
     <div className="text-center">
-      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-neutral-400">
-        {eyebrow}
-      </p>
-      <h2 className="mt-3 text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">
+      <h2 className="text-4xl font-extrabold tracking-[-0.035em] sm:text-5xl">
         {title}
       </h2>
     </div>
@@ -594,67 +689,81 @@ function About() {
     ["Location", CONFIG.location],
     ["Education", CONFIG.education],
   ];
+  const dtClass = "text-base font-semibold text-neutral-500 dark:text-neutral-400";
+  const ddClass = "mt-1 break-words text-base font-semibold sm:text-lg";
 
   return (
     <section id="about" className="scroll-mt-24 px-6 py-28 md:px-10">
-      <SectionHeader eyebrow="Discover" title="About Me" />
+      <SectionHeader title="About Me" />
 
-      <div className="mx-auto mt-16 grid max-w-5xl items-start gap-8 sm:grid-cols-[12rem_1fr] sm:gap-10 md:grid-cols-[16rem_1fr] md:gap-12 lg:grid-cols-[20rem_1fr] lg:gap-14">
-        <div className="mx-auto w-48 overflow-hidden rounded-[2rem] sm:mx-0 sm:w-full bg-black shadow-[0_30px_70px_-30px_rgba(0,0,0,0.45)] ring-1 ring-black/5 dark:ring-white/10">
-          <div className="aspect-[4/5]">
-            <Silhouette id="about" />
+      <div className="mx-auto mt-16 flex max-w-5xl flex-col gap-10">
+        <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
+          <div>
+            <h3 className="border-b border-neutral-200 pb-3 text-2xl font-bold tracking-tight dark:border-white/10">
+              Who Am I
+            </h3>
+            <p className="mt-4 text-base leading-relaxed text-neutral-700 sm:text-lg sm:leading-relaxed dark:text-neutral-300">
+              I'm a fullstack developer and data analyst who likes the parts
+              of software most people skip: input validation, query plans,
+              audit trails. I write backends in Python, model data in
+              PostgreSQL, and report on it in Power BI.
+            </p>
+          </div>
+          <div>
+            <h3 className="border-b border-neutral-200 pb-3 text-2xl font-bold tracking-tight dark:border-white/10">
+              My Approach
+            </h3>
+            <p className="mt-4 text-base leading-relaxed text-neutral-700 sm:text-lg sm:leading-relaxed dark:text-neutral-300">
+              Security first, then speed. I start by asking how a system
+              could be misused, keep data clean at the source, and only then
+              optimize. Every chart I ship traces back to a query I can
+              defend.
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-10">
-          <div className="grid gap-8 lg:grid-cols-2 lg:gap-10">
-            <div>
-              <h3 className="border-b border-neutral-200 pb-3 text-lg font-bold tracking-tight dark:border-white/10">
-                Who Am I
-              </h3>
-              <p className="mt-4 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-                I'm a fullstack developer and data analyst who likes the parts
-                of software most people skip: input validation, query plans,
-                audit trails. I write backends in Python, model data in
-                PostgreSQL, and report on it in Power BI.
-              </p>
-            </div>
-            <div>
-              <h3 className="border-b border-neutral-200 pb-3 text-lg font-bold tracking-tight dark:border-white/10">
-                My Approach
-              </h3>
-              <p className="mt-4 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-                Security first, then speed. I start by asking how a system
-                could be misused, keep data clean at the source, and only then
-                optimize. Every chart I ship traces back to a query I can
-                defend.
-              </p>
-            </div>
-          </div>
+        <div className="rounded-3xl border border-neutral-200 bg-neutral-50 p-6 sm:p-8 dark:border-white/10 dark:bg-white/[0.04]">
+          <h3 className="border-l-[3px] border-black pl-3 text-2xl font-bold tracking-tight dark:border-white">
+            Personal Details
+          </h3>
+          <dl className="mt-6 grid gap-x-8 gap-y-6 md:grid-cols-2">
+            {details.map(([k, v]) => (
+              <div key={k} className="min-w-0">
+                <dt className={dtClass}>{k}</dt>
+                <dd className={ddClass}>
+                  {k === "Email" ? (
+                    <a href={`mailto:${v}`} className="hover:underline">
+                      {v}
+                    </a>
+                  ) : (
+                    v
+                  )}
+                </dd>
+              </div>
+            ))}
 
-          <div className="rounded-3xl border border-neutral-200 bg-neutral-50 p-6 sm:p-8 dark:border-white/10 dark:bg-white/[0.04]">
-            <h3 className="border-l-[3px] border-black pl-3 text-lg font-bold tracking-tight dark:border-white">
-              Personal Details
-            </h3>
-            <dl className="mt-6 grid gap-x-8 gap-y-6 md:grid-cols-2">
-              {details.map(([k, v]) => (
-                <div key={k} className="min-w-0">
-                  <dt className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
-                    {k}
-                  </dt>
-                  <dd className="mt-1 break-words text-sm font-semibold">
-                    {k === "Email" ? (
-                      <a href={`mailto:${v}`} className="hover:underline">
-                        {v}
-                      </a>
-                    ) : (
-                      v
-                    )}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
+            <div className="min-w-0">
+              <dt className={dtClass}>School</dt>
+              <dd className="mt-1">
+                <ul className="space-y-1 text-base font-semibold sm:text-lg">
+                  {CONFIG.schools.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+
+            <div className="min-w-0">
+              <dt className={dtClass}>Interests</dt>
+              <dd className="mt-1">
+                <ul className="space-y-1 text-base font-semibold sm:text-lg">
+                  {CONFIG.interests.map((i) => (
+                    <li key={i}>{i}</li>
+                  ))}
+                </ul>
+              </dd>
+            </div>
+          </dl>
         </div>
       </div>
     </section>
@@ -664,15 +773,144 @@ function About() {
 /* -------------------------------------------------------------------------- */
 /*  Marquee                                                                    */
 /* -------------------------------------------------------------------------- */
+const MARQUEE_SPEED = 60; // px per second
+
+/* Auto-scrolling keyword strip.
+   - pauses while a mouse hovers it and resumes when the pointer leaves
+   - swipe / drag (touch, mouse or trackpad) moves the content, with a little
+     momentum on release
+   Two identical copies sit side by side, so wrapping by one copy's width is
+   seamless. */
 function Marquee() {
+  const rootRef = useRef(null);
+  const trackRef = useRef(null);
+  const copyRef = useRef(null);
+  const st = useRef({ pos: 0, vel: 0, width: 0, hover: false, drag: null, visible: true });
+  const [grabbing, setGrabbing] = useState(false);
+  const reduce = usePrefersReducedMotion();
+  const reduceRef = useRef(reduce);
+  useEffect(() => {
+    reduceRef.current = reduce;
+  }, [reduce]);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    const track = trackRef.current;
+    const copy = copyRef.current;
+    if (!root || !track || !copy) return;
+    const s = st.current;
+
+    const measure = () => {
+      s.width = copy.offsetWidth;
+    };
+    measure();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(copy);
+    const io =
+      typeof IntersectionObserver !== "undefined"
+        ? new IntersectionObserver(([e]) => {
+            s.visible = e.isIntersecting;
+          })
+        : null;
+    io?.observe(root);
+
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now) => {
+      const dt = Math.min((now - last) / 1000, 0.05);
+      last = now;
+      if (s.visible) {
+        if (!s.drag) {
+          if (Math.abs(s.vel) > 5) {
+            s.pos += s.vel * dt;
+            s.vel *= Math.pow(0.02, dt); // momentum fades out in about a second
+          } else {
+            s.vel = 0;
+          }
+          if (!s.hover && !reduceRef.current) s.pos -= MARQUEE_SPEED * dt;
+        }
+        if (s.width) s.pos = (((s.pos % s.width) + s.width) % s.width) - s.width;
+        track.style.transform = `translate3d(${s.pos}px,0,0)`;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+
+    // two-finger horizontal trackpad swipe
+    const onWheel = (e) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        e.preventDefault();
+        s.pos -= e.deltaX;
+        s.vel = 0;
+      }
+    };
+    root.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      root.removeEventListener("wheel", onWheel);
+      ro?.disconnect();
+      io?.disconnect();
+    };
+  }, []);
+
+  const onPointerEnter = (e) => {
+    if (e.pointerType === "mouse") st.current.hover = true;
+  };
+  const onPointerLeave = (e) => {
+    if (e.pointerType === "mouse") st.current.hover = false;
+  };
+  const onPointerDown = (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const s = st.current;
+    s.drag = { id: e.pointerId, x: e.clientX, pos: s.pos, lastX: e.clientX, lastT: e.timeStamp };
+    s.vel = 0;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    setGrabbing(true);
+  };
+  const onPointerMove = (e) => {
+    const s = st.current;
+    const d = s.drag;
+    if (!d || d.id !== e.pointerId) return;
+    s.pos = d.pos + (e.clientX - d.x);
+    const dt = (e.timeStamp - d.lastT) / 1000;
+    if (dt > 0) {
+      const v = (e.clientX - d.lastX) / dt;
+      s.vel = Math.max(-3000, Math.min(3000, s.vel * 0.6 + v * 0.4));
+    }
+    d.lastX = e.clientX;
+    d.lastT = e.timeStamp;
+  };
+  const endDrag = (e) => {
+    const s = st.current;
+    const d = s.drag;
+    if (!d || d.id !== e.pointerId) return;
+    if (e.timeStamp - d.lastT > 80) s.vel = 0; // held still before letting go
+    s.drag = null;
+    setGrabbing(false);
+  };
+
   return (
     <div
+      ref={rootRef}
       aria-hidden="true"
-      className="marquee overflow-hidden border-y border-neutral-200 py-6 dark:border-white/10"
+      onPointerEnter={onPointerEnter}
+      onPointerLeave={onPointerLeave}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+      className={`touch-pan-y select-none overflow-hidden border-y border-neutral-200 py-6 dark:border-white/10 ${
+        grabbing ? "cursor-grabbing" : "cursor-grab"
+      }`}
     >
-      <div className="marquee-track flex w-max">
+      <div ref={trackRef} className="flex w-max will-change-transform">
         {[0, 1].map((copy) => (
-          <ul key={copy} className="flex shrink-0 items-center">
+          <ul
+            key={copy}
+            ref={copy === 0 ? copyRef : undefined}
+            className="flex shrink-0 items-center"
+          >
             {KEYWORDS.map((word) => (
               <li
                 key={word}
@@ -690,153 +928,7 @@ function Marquee() {
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Experience timeline                                                        */
-/* -------------------------------------------------------------------------- */
-function Experience() {
-  const listRef = useRef(null);
-  const itemRefs = useRef([]);
-  const [progress, setProgress] = useState({ px: 0, reached: [] });
-
-  useEffect(() => {
-    const el = listRef.current;
-    if (!el) return;
-    let raf = 0;
-
-    const update = () => {
-      raf = 0;
-      const rect = el.getBoundingClientRect();
-      const px = Math.min(Math.max(window.innerHeight * 0.55 - rect.top, 0), rect.height);
-      const reached = itemRefs.current.map((it) => (it ? it.offsetTop + 36 <= px : false));
-      setProgress({ px, reached });
-    };
-    const onScroll = () => {
-      if (!raf) raf = requestAnimationFrame(update);
-    };
-
-    update();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (raf) cancelAnimationFrame(raf);
-    };
-  }, []);
-
-  return (
-    <section id="experience" className="scroll-mt-24 px-6 py-28 md:px-10">
-      <SectionHeader eyebrow="Career Path" title="Work Experience" />
-
-      <div className="mx-auto mt-16 max-w-5xl">
-        <ol ref={listRef} className="relative space-y-12">
-          {/* base line + scroll-filled line */}
-          <div
-            aria-hidden="true"
-            className="absolute bottom-0 left-4 top-0 w-px -translate-x-1/2 bg-neutral-200 md:left-1/2 dark:bg-white/10"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute left-4 top-0 w-px -translate-x-1/2 bg-black md:left-1/2 dark:bg-white"
-            style={{ height: progress.px }}
-          />
-
-          {EXPERIENCE.map((item, i) => (
-            <li
-              key={item.role}
-              ref={(node) => (itemRefs.current[i] = node)}
-              className="relative pl-12 md:grid md:grid-cols-2 md:gap-x-20 md:pl-0"
-            >
-              <span
-                aria-hidden="true"
-                className={`absolute left-4 top-9 z-10 h-4 w-4 -translate-x-1/2 rounded-full border-[3px] bg-white transition-colors duration-300 md:left-1/2 dark:bg-neutral-950 ${
-                  progress.reached[i]
-                    ? "border-black dark:border-white"
-                    : "border-neutral-300 dark:border-neutral-700"
-                }`}
-              />
-
-              <article
-                className={`p-7 ${card} ${i % 2 === 0 ? "md:col-start-1" : "md:col-start-2"}`}
-              >
-                <p className="text-sm font-semibold text-neutral-400">{item.year}</p>
-                <h3 className="mt-1 text-2xl font-bold tracking-tight">{item.role}</h3>
-                <p className="mt-1 text-sm font-medium text-neutral-500">{item.org}</p>
-
-                <ul className="mt-5 space-y-3">
-                  {item.points.map((p) => (
-                    <li
-                      key={p}
-                      className="flex gap-3 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400"
-                      />
-                      {p}
-                    </li>
-                  ))}
-                </ul>
-
-                <ul className="mt-6 flex flex-wrap gap-2">
-                  {item.tags.map((t) => (
-                    <li
-                      key={t}
-                      className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700 dark:bg-white/10 dark:text-neutral-300"
-                    >
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-              </article>
-            </li>
-          ))}
-        </ol>
-      </div>
-    </section>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Tech stack                                                                 */
-/* -------------------------------------------------------------------------- */
-function TechStack() {
-  return (
-    <section id="skills" className="scroll-mt-24 px-6 py-28 md:px-10">
-      <SectionHeader eyebrow="Skills & Tools" title="My Tech Stack" />
-
-      <div className="mx-auto mt-16 grid max-w-5xl gap-6 md:grid-cols-2">
-        {STACK.map((group) => (
-          <article key={group.title} className={`flex flex-col p-7 ${card}`}>
-            <div className="flex items-center gap-4">
-              <span className="grid h-11 w-11 place-items-center rounded-2xl bg-neutral-100 text-neutral-500 dark:bg-white/10 dark:text-neutral-400">
-                <Icon name={group.icon} className="h-5 w-5" />
-              </span>
-              <div>
-                <h3 className="text-lg font-bold tracking-tight">{group.title}</h3>
-                <p className="text-sm text-neutral-500">{group.blurb}</p>
-              </div>
-            </div>
-
-            <ul className="mt-6 divide-y divide-neutral-100 border-t border-neutral-100 dark:divide-white/5 dark:border-white/5">
-              {group.tools.map((tool) => (
-                <li key={tool.name} className="flex items-center gap-3 py-3.5">
-                  <Icon name={tool.icon} className="h-4 w-4 shrink-0 text-neutral-400" />
-                  <span className="text-sm font-semibold">{tool.name}</span>
-                  <span className="ml-auto text-right text-xs text-neutral-500">
-                    {tool.note}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Projects                                                                   */
+/*  Projects timeline                                                          */
 /* -------------------------------------------------------------------------- */
 function ProjectArt({ kind }) {
   return (
@@ -888,61 +980,91 @@ function ProjectDialog({ project, onClose }) {
   const closeRef = useRef(null);
 
   useEffect(() => {
+    const opener = document.activeElement;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     closeRef.current?.focus();
     const onKey = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+      opener?.focus?.();
+    };
   }, [onClose]);
+
+  const label = "text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400";
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-[70] overflow-y-auto bg-black/50 backdrop-blur-md"
       onClick={onClose}
     >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="project-dialog-title"
-        onClick={(e) => e.stopPropagation()}
-        className="pop-in w-full max-w-lg overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-2xl dark:border-white/10 dark:bg-neutral-900"
-      >
-        <ProjectArt kind={project.art} />
-        <div className="p-7">
-          <div className="flex items-start justify-between gap-4">
-            <h3 id="project-dialog-title" className="text-2xl font-bold tracking-tight">
-              {project.title}
-            </h3>
-            <button
-              ref={closeRef}
-              type="button"
-              onClick={onClose}
-              aria-label="Close details"
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10"
-            >
-              <Icon name="x" />
-            </button>
-          </div>
-          <p className="mt-3 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
-            {project.desc}
-          </p>
-          <ul className="mt-5 space-y-2.5">
-            {project.highlights.map((h) => (
-              <li key={h} className="flex gap-3 text-sm text-neutral-700 dark:text-neutral-300">
-                <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
-                {h}
-              </li>
-            ))}
-          </ul>
-          <ul className="mt-6 flex flex-wrap gap-2">
-            {project.tags.map((t) => (
-              <li
-                key={t}
-                className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700 dark:bg-white/10 dark:text-neutral-300"
+      <div className="flex min-h-full items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="project-dialog-title"
+          onClick={(e) => e.stopPropagation()}
+          className="pop-in w-full max-w-xl overflow-hidden rounded-3xl border border-neutral-200 bg-white shadow-2xl dark:border-white/10 dark:bg-neutral-900"
+        >
+          <ProjectArt kind={project.art} />
+          <div className="p-7 sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-neutral-400">{project.kind}</p>
+                <h3 id="project-dialog-title" className="mt-1 text-2xl font-bold tracking-tight">
+                  {project.title}
+                </h3>
+              </div>
+              <button
+                ref={closeRef}
+                type="button"
+                onClick={onClose}
+                aria-label="Close details"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-black/5 dark:hover:bg-white/10"
               >
-                {t}
-              </li>
-            ))}
-          </ul>
+                <Icon name="x" />
+              </button>
+            </div>
+
+            <h4 className={`mt-7 ${label}`}>Overview</h4>
+            <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+              {project.overview}
+            </p>
+
+            <h4 className={`mt-7 ${label}`}>Key features</h4>
+            <ul className="mt-3 space-y-2.5">
+              {project.highlights.map((h) => (
+                <li key={h} className="flex gap-3 text-sm text-neutral-700 dark:text-neutral-300">
+                  <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-neutral-400" />
+                  {h}
+                </li>
+              ))}
+            </ul>
+
+            <h4 className={`mt-7 ${label}`}>Built with</h4>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {project.tags.map((t) => (
+                <li
+                  key={t}
+                  className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700 dark:bg-white/10 dark:text-neutral-300"
+                >
+                  {t}
+                </li>
+              ))}
+            </ul>
+
+            <a
+              href={CONFIG.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`${btnOutline} mt-8 w-full`}
+            >
+              <Icon name="github" className="h-4 w-4" strokeWidth={2} />
+              See it on GitHub
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -950,57 +1072,164 @@ function ProjectDialog({ project, onClose }) {
 }
 
 function Projects() {
+  const listRef = useRef(null);
+  const itemRefs = useRef([]);
+  const [progress, setProgress] = useState({ px: 0, reached: [] });
   const [selected, setSelected] = useState(null);
   const close = useCallback(() => setSelected(null), []);
 
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+    let raf = 0;
+
+    const update = () => {
+      raf = 0;
+      const rect = el.getBoundingClientRect();
+      const px = Math.min(Math.max(window.innerHeight * 0.55 - rect.top, 0), rect.height);
+      const reached = itemRefs.current.map((it) => (it ? it.offsetTop + 36 <= px : false));
+      setProgress({ px, reached });
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+
   return (
     <section id="projects" className="scroll-mt-24 px-6 py-28 md:px-10">
-      <SectionHeader eyebrow="Portfolio" title="Selected Works" />
+      <SectionHeader title="My Projects" />
 
-      <div className="mx-auto mt-16 max-w-6xl">
-        <div
-          tabIndex={0}
-          role="region"
-          aria-label="Projects. Scroll horizontally to see more."
-          className="no-scrollbar -mx-6 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-6 md:-mx-10 md:px-10 lg:mx-0 lg:px-0"
-        >
-          {PROJECTS.map((p) => (
-            <article
+      <div className="mx-auto mt-16 max-w-5xl">
+        <ol ref={listRef} className="relative space-y-12">
+          {/* base line + scroll-filled line */}
+          <div
+            aria-hidden="true"
+            className="absolute bottom-0 left-4 top-0 w-px -translate-x-1/2 bg-neutral-200 md:left-1/2 dark:bg-white/10"
+          />
+          <div
+            aria-hidden="true"
+            className="absolute left-4 top-0 w-px -translate-x-1/2 bg-black md:left-1/2 dark:bg-white"
+            style={{ height: progress.px }}
+          />
+
+          {PROJECTS.map((p, i) => (
+            <li
               key={p.id}
-              className={`flex w-[85%] shrink-0 snap-start flex-col overflow-hidden sm:w-[24rem] lg:w-[calc(50%-0.75rem)] ${card}`}
+              ref={(node) => (itemRefs.current[i] = node)}
+              className="relative pl-12 md:grid md:grid-cols-2 md:gap-x-20 md:pl-0"
             >
-              <ProjectArt kind={p.art} />
-              <div className="flex flex-1 flex-col p-7">
-                <h3 className="text-xl font-bold tracking-tight">{p.title}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
+              <span
+                aria-hidden="true"
+                className={`absolute left-4 top-9 z-10 h-4 w-4 -translate-x-1/2 rounded-full border-[3px] bg-white transition-colors duration-300 md:left-1/2 dark:bg-neutral-950 ${
+                  progress.reached[i]
+                    ? "border-black dark:border-white"
+                    : "border-neutral-300 dark:border-neutral-700"
+                }`}
+              />
+
+              {/* the whole card is clickable through the stretched button below */}
+              <article
+                className={`stretch-card group relative cursor-pointer p-7 transition-colors hover:border-neutral-400 dark:hover:border-white/30 ${card} ${
+                  i % 2 === 0 ? "md:col-start-1" : "md:col-start-2"
+                }`}
+              >
+                <p className="text-sm font-semibold text-neutral-400">{p.kind}</p>
+                <h3 className="mt-1 text-2xl font-bold tracking-tight">
+                  <button
+                    type="button"
+                    onClick={() => setSelected(p)}
+                    aria-haspopup="dialog"
+                    className="text-left after:absolute after:inset-0 after:rounded-3xl after:content-[''] focus-visible:outline-none"
+                  >
+                    {p.title}
+                  </button>
+                </h3>
+                <p className="mt-3 text-sm leading-relaxed text-neutral-600 dark:text-neutral-400">
                   {p.desc}
                 </p>
-                <button
-                  type="button"
-                  onClick={() => setSelected(p)}
-                  className="mt-6 w-full rounded-xl border border-neutral-300 px-5 py-3 text-xs font-bold uppercase tracking-[0.15em] transition hover:border-black hover:bg-black hover:text-white dark:border-white/20 dark:hover:border-white dark:hover:bg-white dark:hover:text-black"
-                >
-                  View Details
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
 
-        <div className="mt-10 flex justify-center">
+                <ul className="mt-6 flex flex-wrap gap-2">
+                  {p.tags.map((t) => (
+                    <li
+                      key={t}
+                      className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-semibold text-neutral-700 dark:bg-white/10 dark:text-neutral-300"
+                    >
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+
+                <p className="mt-6 flex items-center gap-2 text-sm font-semibold">
+                  View details
+                  <Icon
+                    name="arrow"
+                    className="h-4 w-4 transition-transform group-hover:translate-x-1"
+                    strokeWidth={2}
+                  />
+                </p>
+              </article>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-16 flex justify-center">
           <a
             href={CONFIG.github}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl border border-neutral-300 px-6 py-3 text-xs font-bold uppercase tracking-[0.15em] transition hover:border-black dark:border-white/20 dark:hover:border-white"
+            className={btnSolid}
           >
-            View More Project
+            <Icon name="github" className="h-4 w-4" strokeWidth={2} />
+            View More Projects
             <Icon name="external" className="h-4 w-4" strokeWidth={2} />
           </a>
         </div>
       </div>
 
       {selected && <ProjectDialog project={selected} onClose={close} />}
+    </section>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Tech stack                                                                 */
+/* -------------------------------------------------------------------------- */
+function TechStack() {
+  return (
+    <section id="skills" className="scroll-mt-24 px-6 py-28 md:px-10">
+      <SectionHeader title="My Tech Stack" />
+
+      <div className="mx-auto mt-16 grid max-w-5xl gap-6 md:grid-cols-2">
+        {STACK.map((group) => (
+          <article key={group.title} className={`flex flex-col p-7 ${card}`}>
+            <div>
+              <h3 className="text-lg font-bold tracking-tight">{group.title}</h3>
+              <p className="text-sm text-neutral-500">{group.blurb}</p>
+            </div>
+
+            <ul className="mt-6 divide-y divide-neutral-100 border-t border-neutral-100 dark:divide-white/5 dark:border-white/5">
+              {group.tools.map((tool) => (
+                <li key={tool.name} className="flex items-center gap-3 py-3.5">
+                  <Icon name={tool.icon} className="h-4 w-4 shrink-0 text-neutral-400" />
+                  <span className="text-sm font-semibold">{tool.name}</span>
+                  <span className="ml-auto text-right text-xs text-neutral-500">
+                    {tool.note}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -1055,7 +1284,7 @@ function Contact() {
         <div className="absolute left-1/2 top-1/3 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full bg-neutral-200/60 blur-3xl dark:bg-white/[0.05]" />
       </div>
 
-      <SectionHeader eyebrow="Get in Touch" title="Contact Me" />
+      <SectionHeader title="Contact Me" />
 
       <form
         onSubmit={onSubmit}
@@ -1116,12 +1345,14 @@ function Contact() {
           </div>
         </div>
 
-        <button
-          type="submit"
-          className={`${btnSolid} mt-8 w-full text-xs font-bold uppercase tracking-[0.2em]`}
-        >
-          Send Message
-        </button>
+        <div className="mt-8 flex justify-center">
+          <button
+            type="submit"
+            className="inline-flex w-1/2 min-w-[11rem] items-center justify-center rounded-xl bg-black px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-white transition hover:bg-neutral-700 active:scale-[0.98] dark:bg-white dark:text-black dark:hover:bg-neutral-300"
+          >
+            Send Message
+          </button>
+        </div>
 
         <div role="status" aria-live="polite" className="mt-4 min-h-[1.25rem] text-sm">
           {status.state === "opened" && (
@@ -1157,11 +1388,11 @@ const timeNow = () =>
 function mockReply(q) {
   const s = q.toLowerCase();
   if (/(project|work|built|build)/.test(s))
-    return "Two highlights: a Secure API Backend (Python, PostgreSQL, JWT auth, rate limiting) and a Sales Data Dashboard in Power BI. Open Selected Works and tap View Details for more.";
+    return "Two highlights: a Secure API Backend (Python, PostgreSQL, JWT auth, rate limiting) and a Sales Data Dashboard in Power BI. Open the Projects section and click a project for the full details.";
   if (/(stack|skill|tool|tech|python|sql|power bi|excel)/.test(s))
     return "The core stack is Python and PostgreSQL for backends and data, Power BI and Excel for analytics, plus cybersecurity foundations and threat modeling.";
   if (/(experience|career|job|role|history)/.test(s))
-    return "The Work Experience timeline covers fullstack development, data analysis, and cybersecurity training. Scroll up to the timeline for the details.";
+    return "There isn't a formal work history on the page. The Projects section shows the hands-on work: a Secure API Backend and a Sales Data Dashboard.";
   if (/(contact|email|hire|reach|whatsapp|message)/.test(s))
     return "The quickest way is the contact form at the bottom of the page. It opens WhatsApp with your message ready to send.";
   if (/(who|about|yourself|you)/.test(s))
@@ -1349,14 +1580,14 @@ function AIAssistant() {
 /* -------------------------------------------------------------------------- */
 /*  App                                                                        */
 /* -------------------------------------------------------------------------- */
-const SECTION_IDS = ["home", "about", "experience", "skills", "projects", "contact"];
+const SECTION_IDS = ["home", "about", "projects", "skills", "contact"];
 
 export default function App() {
   // "loading" -> splash visible, "reveal" -> splash fading, "done" -> splash removed
   const [phase, setPhase] = useState("loading");
   const [theme, toggleTheme] = useTheme();
   const rawActive = useActiveSection(SECTION_IDS);
-  const active = rawActive === "skills" ? "experience" : rawActive;
+  const active = rawActive === "skills" ? "projects" : rawActive;
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("reveal"), 2000);
@@ -1381,9 +1612,8 @@ export default function App() {
         <Hero ready={phase !== "loading"} />
         <About />
         <Marquee />
-        <Experience />
-        <TechStack />
         <Projects />
+        <TechStack />
         <Contact />
       </main>
 
